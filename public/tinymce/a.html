@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor TinyMCE Local with Image Upload</title>
+  <script src="js/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
+  <script>
+    tinymce.init({
+      selector: '#mytextarea',
+      height: 500,
+      plugins: 'image code',
+      toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | code | image',
+
+      images_upload_url: '/upload-image',
+
+      images_upload_handler: function (blobInfo, success, failure) {
+        return new Promise(function (resolve, reject) {
+          const xhr = new XMLHttpRequest();
+          xhr.withCredentials = false;
+          xhr.open('POST', '/upload-image');
+
+          xhr.onload = function () {
+            if (xhr.status !== 200) {
+              const errorMsg = 'HTTP Error: ' + xhr.status;
+              failure(errorMsg);
+              reject(errorMsg);
+              return;
+            }
+
+            const json = JSON.parse(xhr.responseText);
+            if (!json || typeof json.location !== 'string') {
+              const errorMsg = 'Invalid JSON: ' + xhr.responseText;
+              failure(errorMsg);
+              reject(errorMsg);
+              return;
+            }
+
+            success(json.location);
+            resolve();
+          };
+
+          const formData = new FormData();
+          formData.append('file', blobInfo.blob(), blobInfo.filename());
+          xhr.send(formData);
+        });
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>Editor TinyMCE (Local) + Upload Gambar</h1>
+  <form method="post">
+    <textarea id="mytextarea">Tulis kontenmu di sini...</textarea>
+  </form>
+</body>
+</html>
